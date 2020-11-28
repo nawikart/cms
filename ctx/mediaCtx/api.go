@@ -1,33 +1,33 @@
 package mediaCtx
 
 import (
-	"../../db/mysql"
+	"github.com/nawikart/cms/db/mysql"
 	// "fmt"
-	"os"
 	"encoding/json"
 	"net/http"
+	"os"
 
-    "image"
-    _ "image/jpeg"
-    _ "image/png"	
+	"image"
+	_ "image/jpeg"
+	_ "image/png"
 )
 
 func Api(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	type Media struct{
-		Id int
+	type Media struct {
+		Id      int
 		Dir, Fn string
-		Lp string
+		Lp      string
 		IsThumb bool
 	}
 
 	var id int
 	var fn, dir string
-	
-    DB, _ := mysql.Connect()
+
+	DB, _ := mysql.Connect()
 	defer DB.Close()
-		
+
 	ms := []Media{}
 
 	rows, _ := DB.Query("SELECT * FROM _media WHERE filename != '' ORDER BY id DESC LIMIT 0, 96")
@@ -41,37 +41,36 @@ func Api(w http.ResponseWriter, r *http.Request) {
 		isthumb := false
 		if Resize(dir, fn) {
 			img = dir + "thumbnails-128/" + fn
-			isthumb = true			
-		}else{
+			isthumb = true
+		} else {
 			img = dir + fn
 		}
-		ms = append(ms, Media{Id: id, Dir: dir, Fn: fn, Lp: CheckLp("./"+ img), IsThumb: isthumb})
+		ms = append(ms, Media{Id: id, Dir: dir, Fn: fn, Lp: CheckLp("./" + img), IsThumb: isthumb})
 	}
 
 	js, _ := json.Marshal(ms)
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(js)	
+	w.Write(js)
 }
-
 
 func CheckLp(imagePath string) string {
 	if _, err := os.Stat(imagePath); os.IsNotExist(err) {
 		return ""
 	}
 
-    file, err := os.Open(imagePath)
-    if err != nil {
-        return ""
-    }
-
-    image, _, err := image.DecodeConfig(file)
-    if err != nil {
+	file, err := os.Open(imagePath)
+	if err != nil {
 		return ""
 	}
-	
+
+	image, _, err := image.DecodeConfig(file)
+	if err != nil {
+		return ""
+	}
+
 	if image.Width > image.Height {
 		return "l"
-	}else{
+	} else {
 		return "p"
 	}
 }

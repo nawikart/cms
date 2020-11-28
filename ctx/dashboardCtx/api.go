@@ -1,8 +1,8 @@
 package dashboardCtx
 
 import (
-	"../../db/mysql"
-	// "fmt"	
+	"github.com/nawikart/cms/db/mysql"
+	// "fmt"
 	"encoding/json"
 	"net/http"
 )
@@ -10,33 +10,33 @@ import (
 func Api(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	type SE struct{
+	type SE struct {
 		S, E string
-	}	
-	type Room struct{
+	}
+	type Room struct {
 		Rt_id, Id, Title string
 	}
-	type Property struct{
+	type Property struct {
 		Id, Title string
-		Rooms []Room
+		Rooms     []Room
 	}
-	type Availability struct{
+	type Availability struct {
 		BlockByAdmin bool
-		Room_id string
+		Room_id      string
 		Availability []SE
 	}
-	type Api struct{
-		Properties []Property
+	type Api struct {
+		Properties   []Property
 		Availability []Availability
 	}
 
 	var id, title, rtid, rid, rtitle string
 	var availability []byte
 	availabilities := []Availability{}
-	
-    DB, _ := mysql.Connect()
+
+	DB, _ := mysql.Connect()
 	defer DB.Close()
-		
+
 	properties := []Property{}
 	rows, _ := DB.Query("SELECT id, title FROM property ORDER BY id DESC LIMIT 0, 12")
 	defer rows.Close()
@@ -45,7 +45,7 @@ func Api(w http.ResponseWriter, r *http.Request) {
 		rows.Scan(&id, &title)
 
 		//GRAB rooms
-		r_rows, _ := DB.Query("SELECT rt.id, r.id, r.title, r.availability FROM roomtype rt RIGHT JOIN room r ON rt.id = r.parent WHERE rt.parent = "+ id +" ORDER BY r.title ASC")		
+		r_rows, _ := DB.Query("SELECT rt.id, r.id, r.title, r.availability FROM roomtype rt RIGHT JOIN room r ON rt.id = r.parent WHERE rt.parent = " + id + " ORDER BY r.title ASC")
 		defer r_rows.Close()
 		rooms := []Room{}
 
@@ -53,7 +53,7 @@ func Api(w http.ResponseWriter, r *http.Request) {
 			dates := []SE{}
 			r_rows.Scan(&rtid, &rid, &rtitle, &availability)
 			rooms = append(rooms, Room{Rt_id: rtid, Id: rid, Title: rtitle})
-			if json.Unmarshal(availability, &dates) == nil{			
+			if json.Unmarshal(availability, &dates) == nil {
 				availabilities = append(availabilities, Availability{BlockByAdmin: true, Room_id: rid, Availability: dates})
 			}
 		}
@@ -64,5 +64,5 @@ func Api(w http.ResponseWriter, r *http.Request) {
 
 	js, _ := json.Marshal(Api{Properties: properties, Availability: availabilities})
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(js)	
+	w.Write(js)
 }
